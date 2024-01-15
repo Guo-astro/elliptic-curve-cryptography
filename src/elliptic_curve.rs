@@ -403,17 +403,17 @@ mod test {
 
         // I + I = 2 * I = I
         let res = ec.add(&FiniteFieldElement::Identity, &FiniteFieldElement::Identity);
-        assert_eq!(res, Ok(Point::Identity));
+        assert_eq!(res, Ok(FiniteFieldElement::Identity));
 
         // (5,16) + (5,1) = I
         let p1 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(16u32));
         let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
 
         let res = ec.add(&p1, &p2);
-        assert_eq!(res, Ok(Point::Identity));
+        assert_eq!(res, Ok(FiniteFieldElement::Identity));
 
         let res = ec.add(&p2, &p1);
-        assert_eq!(res, Ok(Point::Identity));
+        assert_eq!(res, Ok(FiniteFieldElement::Identity));
     }
 
     #[test]
@@ -437,7 +437,7 @@ mod test {
 
         // I + I = 2 * I = I
         let res = ec.double(&FiniteFieldElement::Identity);
-        assert_eq!(res, Ok(Point::Identity));
+        assert_eq!(res, Ok(FiniteFieldElement::Identity));
     }
 
     #[test]
@@ -564,12 +564,12 @@ mod test {
         let g = FiniteFieldElement::Coordinate(gx, gy);
 
         let res = ec.scalar_mul(&g, &n); // n * G
-        assert_eq!(res, Ok(Point::Identity));
+        assert_eq!(res, Ok(FiniteFieldElement::Identity));
 
         // p = 1201 * G -> it is also a generator
         let p = ec.scalar_mul(&g, &BigUint::from(1201u32)).unwrap();
 
         let res = ec.scalar_mul(&p, &n); // n * p
-        assert_eq!(res, Ok(Point::Identity));
+        assert_eq!(res, Ok(FiniteFieldElement::Identity));
     }
 }
