@@ -3,7 +3,9 @@ use num_bigint::BigUint;
 ///
 /// Field is an extension of Group with additional operations: multiplication, subtraction and division are defined and satisfy certain basic rules.
 /// All Elliptic curve cryptography operation in build on Galois Field.
-/// ///
+/// Wiki: The number of elements of a finite field is called its order or, sometimes, its size.
+/// A finite field of order q exists if and only if q is a prime power pk (where p is a prime number and k is a positive integer). In a field of order pk, adding p copies of any element always results in zero; that is, the characteristic of the field is p.
+///
 pub struct GaloisField {}
 
 #[derive(Debug, PartialEq)]
