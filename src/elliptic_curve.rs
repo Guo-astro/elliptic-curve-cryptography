@@ -114,14 +114,14 @@ use num_bigint::BigUint;
 ///  - `I + I = 2 * I = I`
 ///
 #[derive(PartialEq, Clone, Debug)]
-pub enum Point {
+pub enum FiniteFieldElement {
     Coordinate(BigUint, BigUint),
     Identity,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum EllipticCurveError {
-    InvalidPoint(Point),
+    InvalidFiniteFieldElement(FiniteFieldElement),
     InvalidScalar(BigUint),
 }
 
@@ -143,13 +143,17 @@ impl EllipticCurve {
     /// x-reflection of the intersection of the lines that passes through `A`
     /// and `B` and intersects the curve.
     ///
-    pub fn add(&self, a: &Point, b: &Point) -> Result<Point, EllipticCurveError> {
+    pub fn add(
+        &self,
+        a: &FiniteFieldElement,
+        b: &FiniteFieldElement,
+    ) -> Result<FiniteFieldElement, EllipticCurveError> {
         if !self.is_on_curve(a) {
-            return Err(EllipticCurveError::InvalidPoint(a.clone()));
+            return Err(EllipticCurveError::InvalidFiniteFieldElement(a.clone()));
         }
 
         if !self.is_on_curve(b) {
-            return Err(EllipticCurveError::InvalidPoint(b.clone()));
+            return Err(EllipticCurveError::InvalidFiniteFieldElement(b.clone()));
         }
 
         if *a == *b {
@@ -157,14 +161,14 @@ impl EllipticCurve {
         }
 
         match (a, b) {
-            (Point::Identity, _) => Ok(b.clone()),
-            (_, Point::Identity) => Ok(a.clone()),
-            (Point::Coordinate(x1, y1), Point::Coordinate(x2, y2)) => {
+            (FiniteFieldElement::Identity, _) => Ok(b.clone()),
+            (_, FiniteFieldElement::Identity) => Ok(a.clone()),
+            (FiniteFieldElement::Coordinate(x1, y1), FiniteFieldElement::Coordinate(x2, y2)) => {
                 // Check that they are not additive inverses
                 let y1plusy2 = FiniteField::add(y1, y2, &self.p).unwrap();
 
                 if x1 == x2 && y1plusy2 == BigUint::from(0u32) {
-                    return Ok(Point::Identity);
+                    return Ok(FiniteFieldElement::Identity);
                 }
 
                 // s = (y2 - y1) / (x2 - x1) mod p
@@ -175,7 +179,7 @@ impl EllipticCurve {
 
                 let (x3, y3) = self.compute_x3_y3(x1, y1, x2, &s);
 
-                Ok(Point::Coordinate(x3, y3))
+                Ok(FiniteFieldElement::Coordinate(x3, y3))
             }
         }
     }
@@ -185,16 +189,16 @@ impl EllipticCurve {
     /// the curve. Geometrically speaking, the point `B` is the intersection of
     /// the tangent line over A that intersects the curve.
     ///
-    pub fn double(&self, a: &Point) -> Result<Point, EllipticCurveError> {
+    pub fn double(&self, a: &FiniteFieldElement) -> Result<FiniteFieldElement, EllipticCurveError> {
         if !self.is_on_curve(a) {
-            return Err(EllipticCurveError::InvalidPoint(a.clone()));
+            return Err(EllipticCurveError::InvalidFiniteFieldElement(a.clone()));
         }
 
         match a {
-            Point::Identity => Ok(Point::Identity),
-            Point::Coordinate(x1, y1) => {
+            FiniteFieldElement::Identity => Ok(FiniteFieldElement::Identity),
+            FiniteFieldElement::Coordinate(x1, y1) => {
                 if *y1 == BigUint::from(0u32) {
-                    return Ok(Point::Identity);
+                    return Ok(FiniteFieldElement::Identity);
                 }
 
                 // s = (3 * x1^2 + a) / (2 * y1) mod p
@@ -208,7 +212,7 @@ impl EllipticCurve {
 
                 let (x3, y3) = self.compute_x3_y3(x1, y1, x1, &s);
 
-                Ok(Point::Coordinate(x3, y3))
+                Ok(FiniteFieldElement::Coordinate(x3, y3))
             }
         }
     }
@@ -260,7 +264,11 @@ impl EllipticCurve {
     ///           T = T + A
     /// ```
     ///
-    pub fn scalar_mul(&self, a: &Point, d: &BigUint) -> Result<Point, EllipticCurveError> {
+    pub fn scalar_mul(
+        &self,
+        a: &FiniteFieldElement,
+        d: &BigUint,
+    ) -> Result<FiniteFieldElement, EllipticCurveError> {
         if *d == BigUint::from(0u32) {
             return Err(EllipticCurveError::InvalidScalar(d.clone()));
         }
@@ -281,9 +289,9 @@ impl EllipticCurve {
     /// if `y^2 = x^3 + a * x + b mod p` then returns `true`, if not, returns
     /// `false`.
     ///
-    pub fn is_on_curve(&self, a: &Point) -> bool {
+    pub fn is_on_curve(&self, a: &FiniteFieldElement) -> bool {
         match a {
-            Point::Coordinate(x, y) => {
+            FiniteFieldElement::Coordinate(x, y) => {
                 let y2 = y.modpow(&BigUint::from(2u32), &self.p);
                 let x3 = x.modpow(&BigUint::from(3u32), &self.p);
                 let ax = FiniteField::mult(&self.a, x, &self.p).unwrap();
@@ -291,7 +299,7 @@ impl EllipticCurve {
 
                 y2 == FiniteField::add(&x3plusax, &self.b, &self.p).unwrap()
             }
-            Point::Identity => true,
+            FiniteFieldElement::Identity => true,
         }
     }
 }
@@ -311,17 +319,17 @@ mod test {
         };
 
         // (6,3) + (5,1) = (10,6)
-        let p1 = Point::Coordinate(BigUint::from(6u32), BigUint::from(3u32));
-        let p2 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let p3 = Point::Coordinate(BigUint::from(10u32), BigUint::from(6u32));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(6u32), BigUint::from(3u32));
+        let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let p3 = FiniteFieldElement::Coordinate(BigUint::from(10u32), BigUint::from(6u32));
 
         assert!(ec.is_on_curve(&p1));
         assert!(ec.is_on_curve(&p2));
         assert!(ec.is_on_curve(&p3));
 
-        let p4 = Point::Coordinate(BigUint::from(4u32), BigUint::from(1u32));
-        let p5 = Point::Coordinate(BigUint::from(1u32), BigUint::from(1u32));
-        let p6 = Point::Coordinate(BigUint::from(0u32), BigUint::from(1u32));
+        let p4 = FiniteFieldElement::Coordinate(BigUint::from(4u32), BigUint::from(1u32));
+        let p5 = FiniteFieldElement::Coordinate(BigUint::from(1u32), BigUint::from(1u32));
+        let p6 = FiniteFieldElement::Coordinate(BigUint::from(0u32), BigUint::from(1u32));
 
         assert!(!ec.is_on_curve(&p4));
         assert!(!ec.is_on_curve(&p5));
@@ -338,9 +346,12 @@ mod test {
         };
 
         // (6,3) + (5,1) = (10,6)
-        let p1 = Point::Coordinate(BigUint::from(6u32), BigUint::from(3u32));
-        let p2 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let pr = Ok(Point::Coordinate(BigUint::from(10u32), BigUint::from(6u32)));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(6u32), BigUint::from(3u32));
+        let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(10u32),
+            BigUint::from(6u32),
+        ));
 
         let res = ec.add(&p1, &p2);
         assert_eq!(res, pr);
@@ -349,45 +360,54 @@ mod test {
         assert_eq!(res, pr);
 
         // (5,1) + (5,1) = (6,3)
-        let p1 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let p2 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let pr = Ok(Point::Coordinate(BigUint::from(6u32), BigUint::from(3u32)));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(6u32),
+            BigUint::from(3u32),
+        ));
 
         let res = ec.add(&p1, &p2);
         assert_eq!(res, pr);
 
         // (10, 6) + (5, 1) = (3,1)
-        let p1 = Point::Coordinate(BigUint::from(10u32), BigUint::from(6u32));
-        let p2 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let pr = Ok(Point::Coordinate(BigUint::from(3u32), BigUint::from(1u32)));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(10u32), BigUint::from(6u32));
+        let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(3u32),
+            BigUint::from(1u32),
+        ));
 
         let res = ec.add(&p1, &p2);
         assert_eq!(res, pr);
 
         // (16, 13) + (5, 1) = (0, 6)
-        let p1 = Point::Coordinate(BigUint::from(16u32), BigUint::from(13u32));
-        let p2 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let pr = Ok(Point::Coordinate(BigUint::from(0u32), BigUint::from(6u32)));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(16u32), BigUint::from(13u32));
+        let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(0u32),
+            BigUint::from(6u32),
+        ));
 
         let res = ec.add(&p1, &p2);
         assert_eq!(res, pr);
 
         // (6,3) + I = (6,3)
-        let p1 = Point::Coordinate(BigUint::from(6u32), BigUint::from(3u32));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(6u32), BigUint::from(3u32));
 
-        let res = ec.add(&p1, &Point::Identity);
+        let res = ec.add(&p1, &FiniteFieldElement::Identity);
         assert_eq!(res, Ok(p1.clone()));
 
-        let res = ec.add(&Point::Identity, &p1);
+        let res = ec.add(&FiniteFieldElement::Identity, &p1);
         assert_eq!(res, Ok(p1.clone()));
 
         // I + I = 2 * I = I
-        let res = ec.add(&Point::Identity, &Point::Identity);
+        let res = ec.add(&FiniteFieldElement::Identity, &FiniteFieldElement::Identity);
         assert_eq!(res, Ok(Point::Identity));
 
         // (5,16) + (5,1) = I
-        let p1 = Point::Coordinate(BigUint::from(5u32), BigUint::from(16u32));
-        let p2 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(16u32));
+        let p2 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
 
         let res = ec.add(&p1, &p2);
         assert_eq!(res, Ok(Point::Identity));
@@ -406,14 +426,17 @@ mod test {
         };
 
         // (5,1) + (5,1) = 2 (5, 1) = (6,3)
-        let p1 = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
-        let pr = Ok(Point::Coordinate(BigUint::from(6u32), BigUint::from(3u32)));
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(6u32),
+            BigUint::from(3u32),
+        ));
 
         let res = ec.double(&p1);
         assert_eq!(res, pr);
 
         // I + I = 2 * I = I
-        let res = ec.double(&Point::Identity);
+        let res = ec.double(&FiniteFieldElement::Identity);
         assert_eq!(res, Ok(Point::Identity));
     }
 
@@ -426,25 +449,34 @@ mod test {
             p: BigUint::from(17u32),
         };
 
-        let a = Point::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
+        let a = FiniteFieldElement::Coordinate(BigUint::from(5u32), BigUint::from(1u32));
 
         // 2 * (5, 1) = (6,3)
-        let pr = Ok(Point::Coordinate(BigUint::from(6u32), BigUint::from(3u32)));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(6u32),
+            BigUint::from(3u32),
+        ));
         let res = ec.scalar_mul(&a, &BigUint::from(2u32));
         assert_eq!(res, pr);
 
         // 10 * (5, 1) = (7,11)
-        let pr = Ok(Point::Coordinate(BigUint::from(7u32), BigUint::from(11u32)));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(7u32),
+            BigUint::from(11u32),
+        ));
         let res = ec.scalar_mul(&a, &BigUint::from(10u32));
         assert_eq!(res, pr);
 
         // 15 * (5, 1) = (3,16)
-        let pr = Ok(Point::Coordinate(BigUint::from(3u32), BigUint::from(16u32)));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(3u32),
+            BigUint::from(16u32),
+        ));
         let res = ec.scalar_mul(&a, &BigUint::from(15u32));
         assert_eq!(res, pr);
 
         // 16 * (5, 1) = (10,11)
-        let pr = Ok(Point::Coordinate(
+        let pr = Ok(FiniteFieldElement::Coordinate(
             BigUint::from(10u32),
             BigUint::from(11u32),
         ));
@@ -452,23 +484,29 @@ mod test {
         assert_eq!(res, pr);
 
         // 17 * (5, 1) = (6,14)
-        let pr = Ok(Point::Coordinate(BigUint::from(6u32), BigUint::from(14u32)));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(6u32),
+            BigUint::from(14u32),
+        ));
         let res = ec.scalar_mul(&a, &BigUint::from(17u32));
         assert_eq!(res, pr);
 
         // 18 * (5, 1) = (5,16)
-        let pr = Ok(Point::Coordinate(BigUint::from(5u32), BigUint::from(16u32)));
+        let pr = Ok(FiniteFieldElement::Coordinate(
+            BigUint::from(5u32),
+            BigUint::from(16u32),
+        ));
         let res = ec.scalar_mul(&a, &BigUint::from(18u32));
         assert_eq!(res, pr);
 
         // 19 * (5, 1) = I
-        let pr = Ok(Point::Identity);
+        let pr = Ok(FiniteFieldElement::Identity);
         let res = ec.scalar_mul(&a, &BigUint::from(19u32));
         assert_eq!(res, pr);
 
         // 2 * (10, 6) = (16,13)
-        let p1 = Point::Coordinate(BigUint::from(10u32), BigUint::from(6u32));
-        let pr = Ok(Point::Coordinate(
+        let p1 = FiniteFieldElement::Coordinate(BigUint::from(10u32), BigUint::from(6u32));
+        let pr = Ok(FiniteFieldElement::Coordinate(
             BigUint::from(16u32),
             BigUint::from(13u32),
         ));
@@ -523,7 +561,7 @@ mod test {
             p,
         };
 
-        let g = Point::Coordinate(gx, gy);
+        let g = FiniteFieldElement::Coordinate(gx, gy);
 
         let res = ec.scalar_mul(&g, &n); // n * G
         assert_eq!(res, Ok(Point::Identity));
