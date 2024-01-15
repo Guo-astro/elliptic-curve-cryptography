@@ -174,9 +174,9 @@ impl EllipticCurve {
                 // s = (y2 - y1) / (x2 - x1) mod p
                 let numerator = FiniteField::subtract(y2, y1, &self.p).unwrap();
                 let denominator = FiniteField::subtract(x2, x1, &self.p).unwrap();
-
                 let s = FiniteField::divide(&numerator, &denominator, &self.p).unwrap();
-
+                // x3 = s^2 - x1 - x2 mod p
+                // y3 = s(x1 - x3) - y1 mod p
                 let (x3, y3) = self.compute_x3_y3(x1, y1, x2, &s);
 
                 Ok(FiniteFieldElement::Coordinate(x3, y3))
