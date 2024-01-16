@@ -1,3 +1,4 @@
+pub mod ecdsa;
 pub mod elliptic_curve;
 pub mod galois_field;
 
