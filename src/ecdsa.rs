@@ -13,14 +13,18 @@ Public key is B, and private key is d
  b.R = K*A,  r=x
  c.S= (h(m) + d*r)*K^{-1} mod q
  d. signature = (r,s)
+
 3.Verification
-  a. u1 = s^-1 h(m) mod q
-  b. u2 = s^-1 r mod q
+  a. u1 = s^{-1} h(m) mod q
+  b. u2 = s^{-1} r mod q
   c. p = u1*A + u2*B
   d. verify x == r
 
+Proof:
 
-
+K = S^{-1}*(h(m) + d*r)mod q
+  = u1 + d*u2
+K*A = u1*A + d*A*u2 = u1*A + u2*B
 
 */
 use crate::elliptic_curve::{EllipticCurve, FiniteFieldElement};
