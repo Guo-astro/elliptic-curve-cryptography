@@ -1,6 +1,7 @@
 use num_bigint::BigUint;
 
 ///
+/// A good tutorial from stanford: [Introduction to finite fields](http://web.stanford.edu/~marykw/classes/CS250_W19/readings/Forney_Introduction_to_Finite_Fields.pdf)
 /// Field is an extension of Group with additional operations: multiplication, subtraction and division are defined and satisfy certain basic rules.
 /// All Elliptic curve cryptography operation in build on Galois Field.
 /// Wiki: The number of elements of a finite field is called its order or, sometimes, its size.
